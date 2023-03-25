@@ -18,8 +18,8 @@ from ann_visualizer.visualize import ann_viz
 import numpy as np
 
 
-data = np.load('data/data.npz')
-triplets = np.load('data/triplets.npz')
+data = np.load('./data/data.npz')
+triplets = np.load('./data/triplets.npz')
 X_train, y_train, X_test, y_test = data['X_train'], data['y_train'], data['X_test'], data['y_test'] 
 X_trip, y_trip = triplets['X_trip'], triplets['y_trip']
 
@@ -69,7 +69,7 @@ model.compile(loss=triplet_loss, optimizer=Adam(0.0001))
 
 early_stopping = EarlyStopping(patience=5, restore_best_weights=True)
 history = model.fit([X_trip[0], X_trip[1], X_trip[2]], y_trip, verbose=2, validation_split=0.2, batch_size=256, epochs=100, callbacks=[early_stopping])
-model.save_weights('model.hdf5')
+model.save_weights('./weights/model.hdf5')
 
 # summarize history for loss
 plt.plot(history.history['loss'])
@@ -83,7 +83,7 @@ plt.show()
 X_train = embeding_model.predict(X_train)
 X_test = embeding_model.predict(X_test)
 
-np.savez('data/embedings.npz', X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
+np.savez('./data/embedings.npz', X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
 
 print('Elements:', X_test.shape[0], 'enbedins size: ', X_test[1].shape)
 

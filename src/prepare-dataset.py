@@ -1,5 +1,6 @@
 #basic imports
 import os, glob, re, yaml, random
+from munch import DefaultMunch
 
 #data processing
 import librosa
@@ -12,13 +13,13 @@ from alive_progress import alive_bar, alive_it, config_handler
 config_handler.set_global(theme='classic')
 from tqdm import tqdm
 
-CONFIG = yaml.safe_load(open("config.yml"))['prepare']
+config = DefaultMunch.fromDict(yaml.safe_load(open("config.yml"))['prepare'])
 
-def extract_features(file_path, length=3, overlap=0.5, max_count=1, min_duration=2.7, mode='spectogram'):
+def extract_features(file_path, sr=22050, length=3, overlap=0.5, max_count=1, min_duration=2.7, mode='spectogram'):
     # length - in seconds to create audio cuts
     # overlap - between audio cuts in percent, default no overlap
     # max_count - max number of blocks per audio
-    y, sr = librosa.load(file_path, sr=22050, mono=True)
+    y, sr = librosa.load(file_path, sr=sr, mono=True)
     y, _ = librosa.effects.trim(y)
     duration = librosa.get_duration(y=y, sr=sr)
 
@@ -70,16 +71,16 @@ def create_speakers_dict(directory, mic=1):
     return speaker_dict
 
 # create data
-def create_data(dict, max_speakers, max_recordings, mode=2):
+def create_data(dict, max_speakers, max_recordings, mode='mfcc'):
     data, labels, duration = [], [], []
 
     speakers = list(dict.keys())[:max_speakers]
+    speakers_len = len(speakers)
+    print(f'\nProcessing recordings for {speakers_len} speakers ')
     for id, speaker_id in enumerate(speakers):
         recordings = dict[speaker_id][:max_recordings]
 
-        for recording in alive_it(recordings, title=f'P{speaker_id}'):
-            #print(speaker_id, recording)
-
+        for recording in alive_it(recordings, title=f'Speaker {speaker_id} {id}/{speakers_len}'):
             # multiple features per recording
             features, d = extract_features(recording, mode=mode)
             for feature in features:
@@ -146,9 +147,13 @@ def generate_triplets(X, y, n):
     
     return [np.array(anchors), np.array(positives), np.array(negatives)], labels
 
+def set_add(s, x):
+  return len(s) != (s.add(x) or len(s))
+
 def generate_triplets_unique(X, y, n):
     triplets = set()
     shape = None
+    print(f'\nGenerating {n} unique triplets')
     with alive_bar(n) as bar:
         while(len(triplets) < n):
             anchor, positive, negative = get_triplet(X, y)
@@ -156,8 +161,8 @@ def generate_triplets_unique(X, y, n):
                 shape = anchor.shape
 
             triplet = (anchor.tobytes(), positive.tobytes(), negative.tobytes())
-            triplets.add(triplet)
-            bar()
+            if(set_add(triplets, triplet)):
+                bar()
 
     anchors = [np.frombuffer(triplet[0], dtype='float32').reshape(shape) for triplet in triplets]
     positives = [np.frombuffer(triplet[1], dtype='float32').reshape(shape) for triplet in triplets]
@@ -167,20 +172,21 @@ def generate_triplets_unique(X, y, n):
     
     return [np.array(anchors), np.array(positives), np.array(negatives)], labels
 
+def print_audio_lengths(d):
+    print(f'\nLength: {len(d)}, Mean: {np.mean(d)}, Median: {np.median(d)}, Max: {np.max(d)}, Min: {np.min(d)}')
+    print(f'unde 1s: {len(np.where(d<=1)[0])}, 1s - 2s: {len(np.where((d >= 1) & (d <= 2))[0])}')
+    print(f'2s - 3s: {len(np.where((d >= 2) & (d <= 3))[0])}, 3s - 4s: {len(np.where((d >= 3) & (d <= 4))[0])}')
+    print(f'4s - 5s: {len(np.where((d >= 4) & (d <= 5))[0])}, over 5s: {len(np.where(d>=5)[0])}\n')
+
 # create dictionary from directory
-speakers_dict = create_speakers_dict(CONFIG['directory'], mic=CONFIG['mic'])
+speakers_dict = create_speakers_dict(config.directory, mic=config.mic)
+
 # create dataset with extracted features and labels
-X, y, d = create_data(speakers_dict, 10, 50, CONFIG['features'])
-print(f'\nLength: {len(d)}, Mean: {np.mean(d)}, Median: {np.median(d)}, Max: {np.max(d)}, Min: {np.min(d)}')
-print(f'unde 1s: {len(np.where(d<=1)[0])}, 1s - 2s: {len(np.where((d >= 1) & (d <= 2))[0])}')
-print(f'2s - 3s: {len(np.where((d >= 2) & (d <= 3))[0])}, 3s - 4s: {len(np.where((d >= 3) & (d <= 4))[0])}')
-print(f'4s - 5s: {len(np.where((d >= 4) & (d <= 5))[0])}, over 5s: {len(np.where(d>=5)[0])}\n')
+X, y, d = create_data(speakers_dict, config.n_speakers, config.n_recordings, config.features)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=config.test_size, random_state=42)
+X_trip, y_trip = generate_triplets_unique(X_train, y_train, config.n_triplets)
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-print(X.shape)
-
-X_trip, y_trip = generate_triplets_unique(X_train, y_train, 5000)
-print(X_trip[0].shape)
+print(f'\nData shape: {X.shape}, Train Test split: {y_train.shape[0]} / {y_test.shape[0]}, Triplets shape: {X_trip[0].shape}\n')
 
 np.savez('data/data.npz', X=X, y=y, X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
 np.savez('data/triplets.npz', X_trip=X_trip, y_trip=y_trip)

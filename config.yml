@@ -1,14 +1,41 @@
-# Prepare dataset
-kind: Deployment 
-prepare:
+dataset:
+  directory: ./VCTK-Corpus/wav48
   features: mfcc # mfcc / spectogram
-  directory: VCTK-Corpus/wav48
   mic: 2 # 1 = lower quality mic, 2 = high quality
-  speakers: 110
-  recordings: 200
+  test_size: 0.3
+  n_triplets: 5000
+  n_speakers: 10
+  n_recordings: 100
+  audio:
+    mode: mfcc
+    sr: 22050
+    length: 3
+    overlap: 0.5
+    min_duration: 2.7
+    mfcc:
+      n_mels: 128
+      n_fft: 1024
+    spectogram:
+      n_mfcc: 20
 
-train:
-  epochs: 100
-  batch?size: 128
+siamese:
   verbose: 2 
   validation_split: 0.2 
+  batch_size: 128
+  epochs: 100
+  learning_rate: 0.0001
+  plot_history: True
+  plot_scatter: False
+  margin: 1 #triplet loss
+  patience: 5 #eraly stopping
+
+classifier:
+  verbose: 2 
+  validation_split: 0.2 
+  batch_size: 128
+  epochs: 100
+  learning_rate: 0.0001
+  plot_history: True
+  plot_scatter: False
+  margin: 1 #triplet loss
+  patience: 5 #eraly stopping
