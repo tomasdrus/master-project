@@ -1,0 +1,14 @@
+# Prepare dataset
+kind: Deployment 
+prepare:
+  features: mfcc # mfcc / spectogram
+  directory: VCTK-Corpus/wav48
+  mic: 2 # 1 = lower quality mic, 2 = high quality
+  speakers: 110
+  recordings: 200
+
+train:
+  epochs: 100
+  batch?size: 128
+  verbose: 2 
+  validation_split: 0.2 
