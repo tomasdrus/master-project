@@ -1,4 +1,7 @@
+import yaml
 import numpy as np
+
+from munch import DefaultMunch
 
 from keras.models import Sequential
 from keras.optimizers import Adam
@@ -9,6 +12,8 @@ import seaborn as sns; sns.set()
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 from sklearn.utils import shuffle
+
+config = DefaultMunch.fromDict(yaml.safe_load(open("config.yml"))['classifier'])
 
 def make_pairs(X, y):
     pairs, labels = [], []
@@ -42,7 +47,6 @@ def make_pairs(X, y):
 embedings = np.load('data/embedings.npz')
 X_train, y_train, X_test, y_test = embedings['X_train'], embedings['y_train'], embedings['X_test'], embedings['y_test'] 
 
-
 X_train_pairs, y_train_pairs = make_pairs(X_train, y_train)
 X_test_pairs, y_test_pairs = make_pairs(X_test, y_test)
 input_shape = (X_train_pairs.shape[1], )
@@ -59,11 +63,13 @@ model = Sequential([
     Dense(1, activation='sigmoid'),
 ])
 
-model.compile(loss='binary_crossentropy', optimizer=Adam(0.0001), metrics=['accuracy'])
+model.compile(loss='binary_crossentropy', optimizer=Adam(config.learning_rate), metrics=['accuracy'])
 model.summary()
 
-early_stopping = EarlyStopping(patience=5, restore_best_weights=True)
-history = model.fit(X_train_pairs, y_train_pairs, verbose=2, validation_split=0.2, batch_size=64, epochs=200, callbacks=[early_stopping])
+early_stopping = EarlyStopping(patience=config.patience, restore_best_weights=True)
+history = model.fit(X_train_pairs, y_train_pairs, verbose=config.verbose,
+                    validation_split=config.validation_split, batch_size=config.batch_size,
+                    epochs=config.epochs, callbacks=[early_stopping])
 
 plt.plot(history.history['accuracy'])
 plt.plot(history.history['val_accuracy'])

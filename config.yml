@@ -1,11 +1,16 @@
+main:
+  dataset: False
+  siamese: True
+  classifier: False
+
 dataset:
   directory: ./VCTK-Corpus/wav48
   features: mfcc # mfcc / spectogram
   mic: 2 # 1 = lower quality mic, 2 = high quality
-  test_size: 0.3
-  n_triplets: 5000
+  test_size: 0.2
+  n_triplets: 20000
   n_speakers: 10
-  n_recordings: 100
+  n_recordings: 500
   audio:
     mode: mfcc
     sr: 22050
@@ -18,24 +23,25 @@ dataset:
     spectogram:
       n_mfcc: 20
 
+#best 512, 0.01
 siamese:
-  verbose: 2 
+  verbose: 1
   validation_split: 0.2 
-  batch_size: 128
-  epochs: 100
-  learning_rate: 0.0001
-  plot_history: True
+  batch_size: 512
+  epochs: 20
+  learning_rate: 0.01
+  plot_history: False
   plot_scatter: False
+  create_embedings: False
   margin: 1 #triplet loss
-  patience: 5 #eraly stopping
+  patience: 5 #early stopping
 
 classifier:
-  verbose: 2 
+  verbose: 1 
   validation_split: 0.2 
   batch_size: 128
-  epochs: 100
+  epochs: 50
   learning_rate: 0.0001
   plot_history: True
   plot_scatter: False
-  margin: 1 #triplet loss
-  patience: 5 #eraly stopping
+  patience: 5 #early stopping

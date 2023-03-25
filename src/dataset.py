@@ -11,9 +11,8 @@ from skimage.metrics import structural_similarity as ssim
 
 from alive_progress import alive_bar, alive_it, config_handler
 config_handler.set_global(theme='classic')
-from tqdm import tqdm
 
-config = DefaultMunch.fromDict(yaml.safe_load(open("config.yml"))['prepare'])
+config = DefaultMunch.fromDict(yaml.safe_load(open("config.yml"))['dataset'])
 
 def extract_features(file_path, sr=22050, length=3, overlap=0.5, max_count=1, min_duration=2.7, mode='spectogram'):
     # length - in seconds to create audio cuts
