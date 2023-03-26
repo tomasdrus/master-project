@@ -1,5 +1,5 @@
 #basic imports
-import os, glob, re, yaml, random
+import os, glob, re, yaml, random, argparse
 from munch import DefaultMunch
 
 #data processing
@@ -14,18 +14,41 @@ config_handler.set_global(theme='classic')
 
 config = DefaultMunch.fromDict(yaml.safe_load(open("config.yml"))['dataset'])
 
-def extract_features(file_path, sr=22050, length=3, overlap=0.5, max_count=1, min_duration=2.7, mode='spectogram'):
+# arguments (for grid search)
+parser = argparse.ArgumentParser()
+parser.add_argument('--length', dest='length', type=float)
+parser.add_argument('--mic', dest='mic', type=int)
+parser.add_argument('--min_duration', dest='min_duration', type=float)
+parser.add_argument('--n_triplets', dest='n_triplets', type=int)
+parser.add_argument('--sr', dest='sr', type=int)
+parser.add_argument('--mode', dest='mode')
+parser.add_argument('--n_mfcc', dest='n_mfcc', type=int)
+parser.add_argument('--n_mels', dest='n_mels', type=int)
+parser.add_argument('--n_fft', dest='n_fft', type=int)
+parser.add_argument('--fmin', dest='fmin', type=int)
+parser.add_argument('--fmax', dest='fmax', type=int)
+parser.add_argument('--power', dest='power', type=int)
+
+args = parser.parse_args()
+
+def args_conf(name):
+    if(hasattr(args, name) and getattr(args, name) is not None):
+        return getattr(args, name)
+    return getattr(config, name)
+
+# extract features
+def extract_features(file_path, length=args_conf('length'), overlap=args_conf('overlap'), max_count=args_conf('max_count'), min_duration=args_conf('min_duration'), mode='spectogram'):
     # length - in seconds to create audio cuts
     # overlap - between audio cuts in percent, default no overlap
     # max_count - max number of blocks per audio
-    y, sr = librosa.load(file_path, sr=sr, mono=True)
+    y, sr = librosa.load(file_path, sr=args_conf('sr'), mono=True)
     y, _ = librosa.effects.trim(y)
     duration = librosa.get_duration(y=y, sr=sr)
 
     if(duration <= min_duration):
         return [], None
 
-    buffer = length * sr
+    buffer = size = int(length * sr)
     samples_total = len(y)
     samples_wrote = 0
     count = 0
@@ -39,12 +62,12 @@ def extract_features(file_path, sr=22050, length=3, overlap=0.5, max_count=1, mi
         block = y[samples_wrote: (samples_wrote + buffer)]
 
         # short blocks pad with zeros to fit size
-        block = librosa.util.fix_length(block, size=(length * sr))
+        block = librosa.util.fix_length(block, size=(size))
 
-        if mode == 'spectogram':
-            feature = librosa.feature.melspectrogram(y=block, sr = sr, n_mels=128, n_fft = 1024, fmax = None)
+        if args_conf('mode') == 'spectogram':
+            feature = librosa.feature.melspectrogram(y=block, sr=sr, n_mels=args_conf('n_mels'), n_fft=args_conf('n_fft'), fmin=args_conf('fmin'), fmax=args_conf('fmax'), power=args_conf('power'))
         else:
-            feature = librosa.feature.mfcc(y=block, sr=sr, n_mfcc=20) 
+            feature = librosa.feature.mfcc(y=block, sr=sr, n_mfcc=args_conf('n_mfcc'), n_mels=args_conf('n_mels'), n_fft=args_conf('n_fft'), fmin=args_conf('fmin'), fmax=args_conf('fmax'), power=args_conf('power')) 
 
         features.append(feature)
         
@@ -178,14 +201,29 @@ def print_audio_lengths(d):
     print(f'4s - 5s: {len(np.where((d >= 4) & (d <= 5))[0])}, over 5s: {len(np.where(d>=5)[0])}\n')
 
 # create dictionary from directory
-speakers_dict = create_speakers_dict(config.directory, mic=config.mic)
+speakers_dict = create_speakers_dict(config.directory, mic=args_conf('mic'))
 
 # create dataset with extracted features and labels
-X, y, d = create_data(speakers_dict, config.n_speakers, config.n_recordings, config.features)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=config.test_size, random_state=42)
-X_trip, y_trip = generate_triplets_unique(X_train, y_train, config.n_triplets)
+X, y, d = create_data(speakers_dict, config.n_speakers, config.n_recordings, config.mode)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=args_conf('test_size'), random_state=42)
+X_trip, y_trip = generate_triplets_unique(X_train, y_train, args_conf('n_triplets'))
 
 print(f'\nData shape: {X.shape}, Train Test split: {y_train.shape[0]} / {y_test.shape[0]}, Triplets shape: {X_trip[0].shape}\n')
 
 np.savez('data/data.npz', X=X, y=y, X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
 np.savez('data/triplets.npz', X_trip=X_trip, y_trip=y_trip)
+
+np.save('data/settings.npy', {
+    'n_triplets':args_conf('n_triplets'),
+    'mode':args_conf('mode'),
+    'mic':args_conf('mic'),
+    'sr':args_conf('sr'),
+    'length':args_conf('length'),
+    'min_duration':args_conf('min_duration'),
+    'n_mfcc':args_conf('n_mfcc'),
+    'n_mels':args_conf('n_mels'),
+    'n_fft':args_conf('n_fft'),
+    'fmin':args_conf('fmin'),
+    'fmax':args_conf('fmax'),
+    'power':args_conf('power'),
+    }) 

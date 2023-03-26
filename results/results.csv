@@ -1,0 +1,2 @@
+,triplets,length,n_mfcc,n_mels,fmin,fmax,power,epochs,batch,lr,loss,val_loss,time
+0,"(10000, 20, 130)",3,20,128,0,11025,2,10/10,256,0.01,0.00082,0.0011,50.53

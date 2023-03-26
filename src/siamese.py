@@ -26,20 +26,23 @@ config = DefaultMunch.fromDict(yaml.safe_load(open("config.yml"))['siamese'])
 
 # arguments (for grid search)
 parser = argparse.ArgumentParser()
-parser.add_argument('--batch', dest='batch', type=int)
-parser.add_argument('--lr', dest='lr', type=float)
+parser.add_argument('--batch', dest='batch_size', type=int)
+parser.add_argument('--lr', dest='learning_rate', type=float)
 parser.add_argument('--epochs', dest='epochs', type=int)
+parser.add_argument('--patience', dest='patience', type=int)
+parser.add_argument('--margin', dest='margin', type=int)
 
 args = parser.parse_args()
 
 def args_conf(name):
-    if(getattr(args, name) is not None):
+    if(hasattr(args, name) and getattr(args, name) is not None):
         return getattr(args, name)
     return getattr(config, name)
 
 
 data = np.load('./data/data.npz')
 triplets = np.load('./data/triplets.npz')
+
 X_train, y_train, X_test, y_test = data['X_train'], data['y_train'], data['X_test'], data['y_test'] 
 X_trip, y_trip = triplets['X_trip'], triplets['y_trip']
 
@@ -47,7 +50,7 @@ input_shape = (X_trip[0].shape[1], X_trip[0].shape[2], 1)
 print(input_shape)
 
 def triplet_loss(y_true, y_pred):
-    margin = K.constant(config.margin)
+    margin = K.constant(args_conf('margin'))
     return K.mean(K.maximum(K.constant(0), K.square(y_pred[:,0]) - 0.5*(K.square(y_pred[:,1])+K.square(y_pred[:,2])) + margin))
 
 def euclidean_distance(vects):
@@ -104,39 +107,47 @@ stacked_dists = Lambda(lambda vects: K.stack(vects, axis=1), name='stacked_dists
 
 model = Model([anchor_input, positive_input, negative_input], stacked_dists, name='triple_siamese')
 
-model.compile(loss=triplet_loss, optimizer=Adam(config.learning_rate))
+model.compile(loss=triplet_loss, optimizer=Adam(args_conf('learning_rate')))
 
-early_stopping = EarlyStopping(patience=config.patience, restore_best_weights=True)
+early_stopping = EarlyStopping(patience=args_conf('patience'), restore_best_weights=True)
 start_time = time.time()
 history = model.fit([X_trip[0], X_trip[1], X_trip[2]], y_trip,
-                    verbose=config.verbose, validation_split=config.validation_split,
-                    batch_size=config.batch_size, epochs=args_conf('epochs'), callbacks=[early_stopping])
+                    verbose=config.verbose, validation_split=args_conf('validation_split'),
+                    batch_size=args_conf('batch_size'), epochs=args_conf('epochs'), callbacks=[early_stopping])
 elapsed_time = time.time() - start_time
 print(history.history['loss'][1])
 model.save_weights('./weights/model.hdf5')
 
 
-if(not os.path.exists("data.csv")):
-    column_names = ['train_test',"triplets", "epochs", "batch", "lr", "val_split", "loss", "val_loss", "time"]
+if(not os.path.exists(f"results/{config.result_name}.csv")):
+    column_names = ["triplets", "length", "n_mfcc", "n_mels", "fmin", "fmax", "sr", "epochs", "batch", "lr", "loss", "val_loss", "time"]
     df = pd.DataFrame(columns=column_names)
 else:
-    df = pd.read_csv('data.csv', index_col=0)
+    df = pd.read_csv(f'results/{config.result_name}.csv', index_col=0)
 
-row = {
-    'train_test': f'{y_train.shape[0]}/{y_test.shape[0]}',
+settings = np.load('./data/settings.npy', allow_pickle=True).item()
+
+df.loc[df.shape[0]] = {
+    #'train_test': f'{y_train.shape[0]}/{y_test.shape[0]}',
     'triplets': X_trip[0].shape,
-    'epochs': f'{len(history.history["loss"])}/{config.epochs}',
-    'batch':int(config.batch_size),
-    'lr':config.learning_rate,
-    'val_split':config.validation_split,
+    'length': settings['length'],
+    'n_mfcc': settings['n_mfcc'],
+    'n_mels': settings['n_mels'],
+    'fmin': settings['fmin'],
+    'fmax': settings['fmax'],
+    'sr': settings['sr'],
+    'epochs': f'{len(history.history["loss"])}/{args_conf("epochs")}',
+    'batch':args_conf('batch_size'),
+    'lr':args_conf('learning_rate'),
     'loss':round(history.history['loss'][-1], 5),
     'val_loss':round(history.history['val_loss'][-1], 5),
     'time':round(elapsed_time, 2)}
 
-df.loc[df.shape[0]] = row
 
-print('\n',df[['epochs', 'batch', 'lr', 'loss', 'val_loss', 'time']],'\n')
-df.to_csv('data.csv')
+
+print('\n',df,'\n')
+#print('\n',df[['epochs', 'batch', 'lr', 'loss', 'val_loss', 'time']],'\n')
+df.to_csv(f'results/{config.result_name}.csv')
 
 # summarize history for loss
 if(config.plot_history):
