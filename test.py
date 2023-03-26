@@ -15,7 +15,7 @@ librosa.display.waveshow(y, sr=sr, ax=ax[0])
 ax[0].set(title='Envelope view, mono')
 ax[0].label_outer()
 
-y, _ = librosa.effects.trim(y, top_db=30, ref=np.max)
+y, _ = librosa.effects.trim(y, top_db=100, ref=np.max)
 duration_trim = librosa.get_duration(y=y, sr=sr)
 print(duration_orig, duration_trim)
 

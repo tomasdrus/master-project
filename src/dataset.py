@@ -2,6 +2,8 @@
 import os, glob, re, yaml, random, argparse
 from munch import DefaultMunch
 
+from helpers import * # custom helpers functions
+
 #data processing
 import librosa
 import numpy as np
@@ -42,7 +44,7 @@ def extract_features(file_path, length=args_conf('length'), overlap=args_conf('o
     # overlap - between audio cuts in percent, default no overlap
     # max_count - max number of blocks per audio
     y, sr = librosa.load(file_path, sr=args_conf('sr'), mono=True)
-    y, _ = librosa.effects.trim(y)
+    y, _ = librosa.effects.trim(y, top_db=args_conf('top_db'), ref=np.max)
     duration = librosa.get_duration(y=y, sr=sr)
 
     if(duration <= min_duration):
@@ -60,6 +62,11 @@ def extract_features(file_path, length=args_conf('length'), overlap=args_conf('o
             buffer = samples_total - samples_wrote
 
         block = y[samples_wrote: (samples_wrote + buffer)]
+        block_duration = librosa.get_duration(y=block, sr=sr)
+        #print(f'full duration {round(duration, 2)}, block {count}, duration {round(block_duration, 2)}')
+
+        if(block_duration < min_duration):
+            break
 
         # short blocks pad with zeros to fit size
         block = librosa.util.fix_length(block, size=(size))
@@ -76,6 +83,7 @@ def extract_features(file_path, length=args_conf('length'), overlap=args_conf('o
         else:
             samples_wrote += int(buffer * (1 - overlap))
         count += 1
+    #print(f'+++ {len(features)} +++' if len(features) > 0 else '--------')
     return features, duration
 
 # create speakers dict
@@ -169,9 +177,6 @@ def generate_triplets(X, y, n):
     
     return [np.array(anchors), np.array(positives), np.array(negatives)], labels
 
-def set_add(s, x):
-  return len(s) != (s.add(x) or len(s))
-
 def generate_triplets_unique(X, y, n):
     triplets = set()
     shape = None
@@ -196,9 +201,9 @@ def generate_triplets_unique(X, y, n):
 
 def print_audio_lengths(d):
     print(f'\nLength: {len(d)}, Mean: {np.mean(d)}, Median: {np.median(d)}, Max: {np.max(d)}, Min: {np.min(d)}')
-    print(f'unde 1s: {len(np.where(d<=1)[0])}, 1s - 2s: {len(np.where((d >= 1) & (d <= 2))[0])}')
-    print(f'2s - 3s: {len(np.where((d >= 2) & (d <= 3))[0])}, 3s - 4s: {len(np.where((d >= 3) & (d <= 4))[0])}')
-    print(f'4s - 5s: {len(np.where((d >= 4) & (d <= 5))[0])}, over 5s: {len(np.where(d>=5)[0])}\n')
+    print(f'unde 1s: {percent(len(np.where(d<=1)[0]), len(d))}, 1s - 2s: {percent(len(np.where((d >= 1) & (d <= 2))[0]), len(d))}')
+    print(f'2s - 3s: {percent(len(np.where((d >= 2) & (d <= 3))[0]), len(d))}, 3s - 4s: {percent(len(np.where((d >= 3) & (d <= 4))[0]), len(d))}')
+    print(f'4s - 5s: {percent(len(np.where((d >= 4) & (d <= 5))[0]), len(d))}, over 5s: {percent(len(np.where(d>=5)[0]), len(d))}\n')
 
 # create dictionary from directory
 speakers_dict = create_speakers_dict(config.directory, mic=args_conf('mic'))
@@ -209,6 +214,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=args_conf('t
 X_trip, y_trip = generate_triplets_unique(X_train, y_train, args_conf('n_triplets'))
 
 print(f'\nData shape: {X.shape}, Train Test split: {y_train.shape[0]} / {y_test.shape[0]}, Triplets shape: {X_trip[0].shape}\n')
+print_audio_lengths(d)
 
 np.savez('data/data.npz', X=X, y=y, X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
 np.savez('data/triplets.npz', X_trip=X_trip, y_trip=y_trip)

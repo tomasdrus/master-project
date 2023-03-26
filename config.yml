@@ -1,8 +1,8 @@
 main:
   dataset: True
-  dataset_search: True
+  dataset_search: False
 
-  siamese: True
+  siamese: False
   siamese_search: False
 
   classifier: False
@@ -13,20 +13,21 @@ dataset:
   mode: mfcc # mfcc / spectogram
   mic: 2 # 1 = lower quality mic, 2 = high quality
   test_size: 0.01
-  n_triplets: 10000
-  n_speakers: 10
+  n_triplets: 100
+  n_speakers: 2
   n_recordings: 500
   sr: 22050
-  length: 3 # best
-  overlap: 0.5
-  max_count: 1
-  min_duration: 2.75
-  n_mfcc: 40 #
+  length: 3 
+  overlap: 0.50
+  max_count: 20
+  min_duration: 2.7
+  n_mfcc: 40 
   n_mels: 128
   n_fft: 1024
   fmin: 0
   fmax: 11025
   power: 2
+  top_db: 30
 
 #best 512, 0.01
 siamese:
