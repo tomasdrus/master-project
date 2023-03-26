@@ -1,25 +1,25 @@
 main:
-  dataset: True
+  dataset: False
   dataset_search: False
 
   siamese: False
   siamese_search: False
 
-  classifier: False
+  classifier: True
   classifier_search: False
 
 dataset:
   directory: ./VCTK-Corpus/wav48
   mode: mfcc # mfcc / spectogram
   mic: 2 # 1 = lower quality mic, 2 = high quality
-  test_size: 0.01
-  n_triplets: 100
-  n_speakers: 2
+  test_size: 0.2
+  n_triplets: 20000
+  n_speakers: 10
   n_recordings: 500
   sr: 22050
   length: 3 
-  overlap: 0.50
-  max_count: 20
+  overlap: 0.25
+  max_count: 10
   min_duration: 2.7
   n_mfcc: 40 
   n_mels: 128
@@ -31,24 +31,34 @@ dataset:
 
 #best 512, 0.01
 siamese:
-  verbose: 1
-  validation_split: 0.2 
-  batch_size: 256
-  epochs: 10
-  learning_rate: 0.001
   plot_history: False
-  plot_scatter: False
-  create_embedings: False
+  create_embedings: True
+  plot_scatter: True
+  
+  result_name: whole
+
+  version: 1.1
+
+  verbose: 1
+  validation_split: 0.15 
+  batch_size: 256
+  dense: 512
+  epochs: 10
+  learning_rate: 0.01
   margin: 1 #triplet loss
   patience: 5 #early stopping
-  result_name: test-sr
 
 classifier:
-  verbose: 1 
+  plot_summary: False
+  plot_history: False
+  plot_confusion: True
+
+  result_name: whole
+
+  verbose: 2 
   validation_split: 0.2 
-  batch_size: 128
-  epochs: 50
-  learning_rate: 0.0001
-  plot_history: True
-  plot_scatter: False
+  batch_size: 256
+  epochs: 1
+  learning_rate: 0.001
   patience: 5 #early stopping
+  

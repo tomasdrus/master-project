@@ -1,5 +1,8 @@
 import yaml
 import numpy as np
+import pandas as pd
+
+from helpers import *
 
 from munch import DefaultMunch
 
@@ -13,43 +16,40 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 from sklearn.utils import shuffle
 
+from alive_progress import alive_bar, alive_it, config_handler
+config_handler.set_global(theme='classic')
+
 config = DefaultMunch.fromDict(yaml.safe_load(open("config.yml"))['classifier'])
 
-def make_pairs(X, y):
+def join_pair(x1, x2):
+    return np.concatenate([x1, x2])
+
+def generate_pairs(X, y, n):
     pairs, labels = [], []
+    y_set = set(y)
+    with alive_bar(n) as bar:
+        while(len(pairs) < n):
+            y1, y2 = np.random.choice(list(y_set), size=2, replace=False)
+            pos_idx1, pos_idx2 = np.random.choice(np.where(y == y1)[0], size=2, replace=False)
 
-    numClasses = len(np.unique(y))
-    indexes = [np.where(y == i)[0] for i in range(0, numClasses)]
+            neg_idx1 = np.random.choice(np.where(y == y1)[0])
+            neg_idx2 = np.random.choice(np.where(y == y2)[0])
 
-    for anchor_i in range(len(X)):
-        print(anchor_i)
-        anchor = X[anchor_i]
-        index = y[anchor_i]
+            pairs.append(join_pair(X[pos_idx1], X[pos_idx2]))
+            labels.append(1)
+            pairs.append(join_pair(X[neg_idx1], X[neg_idx2]))
+            labels.append(0)
+            bar(2)
 
-        # positive pairs
-        positive_i = np.random.choice(indexes[index])
-        positive = X[positive_i]
-
-        pairs.append(np.concatenate([anchor, positive]))
-        labels.append([1])
-
-        # negative pairs
-        negative_i = np.where(y != index)[0]
-        negative = X[np.random.choice(negative_i)]
-
-        pairs.append(np.concatenate([anchor, negative]))
-        labels.append([0])
-
-    # shuffle arrays
     pairs, labels = shuffle(np.array(pairs), np.array(labels))
-    return (pairs, labels)
+    return pairs, labels 
 
 embedings = np.load('data/embedings.npz')
 X_train, y_train, X_test, y_test = embedings['X_train'], embedings['y_train'], embedings['X_test'], embedings['y_test'] 
 
-X_train_pairs, y_train_pairs = make_pairs(X_train, y_train)
-X_test_pairs, y_test_pairs = make_pairs(X_test, y_test)
-input_shape = (X_train_pairs.shape[1], )
+X_train_pairs, y_train_pairs = generate_pairs(X_train, y_train, len(y_train) * 10)
+X_test_pairs, y_test_pairs = generate_pairs(X_test, y_test, len(y_test) * 10)
+input_shape = (X_train_pairs[0].shape)
 
 # Define the neural network architecture
 model = Sequential([
@@ -59,32 +59,60 @@ model = Sequential([
     Dropout(0.2),
     Dense(64, activation='relu'),
     Dropout(0.2),
-    Dense(32, activation='relu'),
     Dense(1, activation='sigmoid'),
 ])
 
 model.compile(loss='binary_crossentropy', optimizer=Adam(config.learning_rate), metrics=['accuracy'])
-model.summary()
+if(config.plot_summary):
+    model.summary()
 
 early_stopping = EarlyStopping(patience=config.patience, restore_best_weights=True)
 history = model.fit(X_train_pairs, y_train_pairs, verbose=config.verbose,
                     validation_split=config.validation_split, batch_size=config.batch_size,
                     epochs=config.epochs, callbacks=[early_stopping])
 
-plt.plot(history.history['accuracy'])
-plt.plot(history.history['val_accuracy'])
-plt.title('Training and Validation Losses',size = 20)
-plt.ylabel('accuracy')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper right')
-plt.show()
+if(config.plot_history):
+    plt.plot(history.history['accuracy'])
+    plt.plot(history.history['val_accuracy'])
+    plt.title('Training and Validation Losses',size = 20)
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper right')
+    plt.show()
 
-score, acc = model.evaluate(X_test_pairs, y_test_pairs, verbose = 0)
-print('accuracy', acc)
+results = model.evaluate(X_test_pairs, y_test_pairs, verbose = 0)
+
+df = pd.read_csv(f'results/{config.result_name}.csv', index_col=0)
+df.loc[df.index[-1],'bc_loss'] = round(results[0], 5)
+df.loc[df.index[-1],'bc_acc'] = round(results[1], 5)
+df.to_csv(f'results/{config.result_name}.csv')
+print('\n',df,'\n')
+
+print(f'\n ACCURACY {round(results[1], 5)}, LOSS {round(results[0], 5)}\n')
 
 y_pred = model.predict(X_test_pairs)
-y_pred = [1 * (x[0]>=0.5) for x in y_pred]
+treshold = 0.99
+y_pred = [1 * (x[0]>=treshold) for x in y_pred]
 
-conf_mat = confusion_matrix(y_test_pairs, y_pred)
-sns.heatmap(conf_mat, square=True, annot=True, cmap='Blues', fmt='d', cbar=False)
-plt.show()
+def calculate_far_frr_eer(y_true, y_pred):
+    y_true = np.array(y_true, dtype=bool)
+    y_pred = np.array(y_pred, dtype=bool)
+
+    false_accepts = np.logical_and(y_pred == 1, y_test_pairs == 0).sum()
+    false_rejects = np.logical_and(y_pred == 0, y_test_pairs == 1).sum()
+    true_accepts = np.logical_and(y_pred == 1, y_test_pairs == 1).sum()
+    true_rejects = np.logical_and(y_pred == 0, y_test_pairs == 0).sum()
+
+    FAR = false_accepts / (false_accepts + true_rejects)
+    FRR = false_rejects / (false_rejects + true_accepts)
+    EER = (FAR + FRR) / 2
+    return round(FAR, 5), round(FRR, 5), round(EER, 5)
+
+FAR, FRR, ERR = calculate_far_frr_eer(y_test_pairs, y_pred)
+
+print(f'FAR: {FAR} , FRR: {FRR} , EER: {ERR} ')
+
+if(config.plot_confusion):
+    conf_mat = confusion_matrix(y_test_pairs, y_pred)
+    sns.heatmap(conf_mat, square=True, annot=True, cmap='Blues', fmt='d', cbar=False)
+    plt.show()

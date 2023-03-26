@@ -155,14 +155,6 @@ def get_triplet(X, y):
         neg_key = random.choice([id for id in keys if id != key])
         neg_i = random.choice(list(np.where(y == neg_key)[0]))
         anch, pos, neg = X[anch_i], X[pos_i], X[neg_i]
-
-        ap_ssim = ssim(anch, pos, data_range=pos.max() - pos.min())
-        an_ssim = ssim(anch, neg, data_range=neg.max() - neg.min())
-        diff = ap_ssim - an_ssim
-
-        #if(diff < 0.2 and diff > 0.05):
-        #if(diff > 0):
-            #print('AP: ',round(ap_ssim,3),'AN: ',round(an_ssim,3), 'DIFF: ', diff)
         return anch, pos, neg
 
 
@@ -214,7 +206,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=args_conf('t
 X_trip, y_trip = generate_triplets_unique(X_train, y_train, args_conf('n_triplets'))
 
 print(f'\nData shape: {X.shape}, Train Test split: {y_train.shape[0]} / {y_test.shape[0]}, Triplets shape: {X_trip[0].shape}\n')
-print_audio_lengths(d)
+#print_audio_lengths(d)
 
 np.savez('data/data.npz', X=X, y=y, X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
 np.savez('data/triplets.npz', X_trip=X_trip, y_trip=y_trip)
