@@ -110,7 +110,7 @@ def create_data(dict, max_speakers, max_recordings, mode='mfcc'):
     for id, speaker_id in enumerate(speakers):
         recordings = dict[speaker_id][:max_recordings]
 
-        for recording in alive_it(recordings, title=f'Speaker {speaker_id} {id}/{speakers_len}'):
+        for recording in alive_it(recordings, title=f'Speaker {speaker_id} {id+1}/{speakers_len}'):
             # multiple features per recording
             features, d = extract_features(recording, mode=mode)
             for feature in features:

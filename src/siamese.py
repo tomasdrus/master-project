@@ -88,7 +88,7 @@ model.save_weights('./weights/model.hdf5')
 
 # save results
 if(not os.path.exists(f"results/{config.result_name}.csv")):
-    column_names = ["ver", "data", "length", "epochs", "batch", "lr", "loss", "val_loss", "time", "bc_loss", "bc_acc"]
+    column_names = ["ver", "data", "length", "epochs", "batch", "lr", "time", "loss", "val_loss", "LOSS", "ACC", "FAR", "FRR", "EER"]
     df = pd.DataFrame(columns=column_names)
 else:
     df = pd.read_csv(f'results/{config.result_name}.csv', index_col=0)
@@ -104,7 +104,8 @@ df.loc[df.shape[0]] = {
     'lr':args_conf('learning_rate'),
     'loss':round(history.history['loss'][-1], 5),
     'val_loss':round(history.history['val_loss'][-1], 5),
-    'time':round(elapsed_time, 2)}
+    'time':round(elapsed_time, 2)
+    }
 
 
 print('\n',df,'\n')

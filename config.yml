@@ -1,8 +1,8 @@
 main:
-  dataset: False
+  dataset: True
   dataset_search: False
 
-  siamese: False
+  siamese: True
   siamese_search: False
 
   classifier: True
@@ -13,8 +13,8 @@ dataset:
   mode: mfcc # mfcc / spectogram
   mic: 2 # 1 = lower quality mic, 2 = high quality
   test_size: 0.2
-  n_triplets: 20000
-  n_speakers: 10
+  n_triplets: 100000
+  n_speakers: 200
   n_recordings: 500
   sr: 22050
   length: 3 
@@ -35,7 +35,7 @@ siamese:
   create_embedings: True
   plot_scatter: True
   
-  result_name: whole
+  result_name: final
 
   version: 1.1
 
@@ -43,20 +43,20 @@ siamese:
   validation_split: 0.15 
   batch_size: 256
   dense: 512
-  epochs: 10
+  epochs: 50
   learning_rate: 0.01
   margin: 1 #triplet loss
   patience: 5 #early stopping
 
 classifier:
   plot_summary: False
-  plot_history: False
+  plot_history: True
   plot_confusion: True
 
-  result_name: whole
+  result_name: final
 
   verbose: 2 
-  validation_split: 0.2 
+  validation_split: 0.15 
   batch_size: 256
   epochs: 1
   learning_rate: 0.001

@@ -82,16 +82,10 @@ if(config.plot_history):
 
 results = model.evaluate(X_test_pairs, y_test_pairs, verbose = 0)
 
-df = pd.read_csv(f'results/{config.result_name}.csv', index_col=0)
-df.loc[df.index[-1],'bc_loss'] = round(results[0], 5)
-df.loc[df.index[-1],'bc_acc'] = round(results[1], 5)
-df.to_csv(f'results/{config.result_name}.csv')
-print('\n',df,'\n')
-
 print(f'\n ACCURACY {round(results[1], 5)}, LOSS {round(results[0], 5)}\n')
 
 y_pred = model.predict(X_test_pairs)
-treshold = 0.99
+treshold = 0.5
 y_pred = [1 * (x[0]>=treshold) for x in y_pred]
 
 def calculate_far_frr_eer(y_true, y_pred):
@@ -106,11 +100,21 @@ def calculate_far_frr_eer(y_true, y_pred):
     FAR = false_accepts / (false_accepts + true_rejects)
     FRR = false_rejects / (false_rejects + true_accepts)
     EER = (FAR + FRR) / 2
-    return round(FAR, 5), round(FRR, 5), round(EER, 5)
+    return FAR, FRR, EER
 
-FAR, FRR, ERR = calculate_far_frr_eer(y_test_pairs, y_pred)
+FAR, FRR, EER = calculate_far_frr_eer(y_test_pairs, y_pred)
 
-print(f'FAR: {FAR} , FRR: {FRR} , EER: {ERR} ')
+print(f'FAR: {FAR} , FRR: {FRR} , EER: {EER} ')
+
+df = pd.read_csv(f'results/{config.result_name}.csv', index_col=0)
+df.loc[df.index[-1],'LOSS'] = round(results[0], 5)
+df.loc[df.index[-1],'ACC'] = round(results[1], 5)
+df.loc[df.index[-1],'FAR'] = round(FAR, 5)
+df.loc[df.index[-1],'FRR'] = round(FRR, 5)
+df.loc[df.index[-1],'EER'] = round(EER, 5)
+df.to_csv(f'results/{config.result_name}.csv')
+
+print('\n',df,'\n')
 
 if(config.plot_confusion):
     conf_mat = confusion_matrix(y_test_pairs, y_pred)
