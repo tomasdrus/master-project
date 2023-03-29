@@ -54,7 +54,10 @@ def euclidean_distance(vects):
     return K.sqrt(K.maximum(K.sum(K.square(x - y), axis=1, keepdims=True), K.epsilon()))
 
 input_shape = (X_trip[0].shape[1], X_trip[0].shape[2], 1)
-embeding_model = embeding_model(input_shape, version=args_conf('version'))
+embeding_model = embeding_model(input_shape,
+                                version=args_conf('version'),
+                                filters=args_conf('filters'),
+                                dense=args_conf('dense'))
 
 visualkeras.layered_view(embeding_model, legend=True, to_file=f'img/model-v.{args_conf("version")}.png')#.show()
 
@@ -88,7 +91,9 @@ model.save_weights('./weights/model.hdf5')
 
 # save results
 if(not os.path.exists(f"results/{config.result_name}.csv")):
-    column_names = ["ver", "data", "length", "epochs", "batch", "lr", "time", "loss", "val_loss", "LOSS", "ACC", "FAR", "FRR", "EER"]
+    column_names = ["version",'train_test', "data",'min_duration', "length",'max_count',
+                    'overlap','n_mfcc','n_mels','n_fft','fmin','fmax','power', "epochs",
+                    "batch",'dense', "lr", "time", "loss", "val_loss", "LOSS", "ACC", "FAR", "FRR", "EER"]
     df = pd.DataFrame(columns=column_names)
 else:
     df = pd.read_csv(f'results/{config.result_name}.csv', index_col=0)
@@ -96,21 +101,32 @@ else:
 settings = np.load('./data/settings.npy', allow_pickle=True).item()
 
 df.loc[df.shape[0]] = {
-    'ver': args_conf('version'),
+    'version': args_conf('version'),
+    'train_test': settings['train_test'],
     'data': X_trip[0].shape,
+    'min_duration': settings['min_duration'],
     'length': settings['length'],
+    'max_count': settings['max_count'],
+    'overlap': settings['overlap'],
+    'n_mfcc': settings['n_mfcc'],
+    'n_mels': settings['n_mels'],
+    'n_fft': settings['n_fft'],
+    'fmin': settings['fmin'],
+    'fmax': settings['fmax'],
+    'power': settings['power'],
     'epochs': f'{len(history.history["loss"])}/{args_conf("epochs")}',
-    'batch':args_conf('batch_size'),
-    'lr':args_conf('learning_rate'),
+    'batch': args_conf('batch_size'),
+    'dense': args_conf('dense'),
+    'cnn': args_conf('cnn'),
+    'lr': args_conf('learning_rate'),
     'loss':round(history.history['loss'][-1], 5),
     'val_loss':round(history.history['val_loss'][-1], 5),
-    'time':round(elapsed_time, 2)
+    'time':round(elapsed_time, 2),
     }
 
-
-print('\n',df,'\n')
-#print('\n',df[['epochs', 'batch', 'lr', 'loss', 'val_loss', 'time']],'\n')
+#print('\n',df,'\n')
 df.to_csv(f'results/{config.result_name}.csv')
+print('\n',df[['train_test','data','epochs', 'batch', 'dense', 'loss', 'val_loss', 'time']],'\n')
 
 # summarize history for loss
 if(config.plot_history):

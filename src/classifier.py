@@ -114,7 +114,8 @@ df.loc[df.index[-1],'FRR'] = round(FRR, 5)
 df.loc[df.index[-1],'EER'] = round(EER, 5)
 df.to_csv(f'results/{config.result_name}.csv')
 
-print('\n',df,'\n')
+#print('\n',df,'\n')
+print('\n',df[['train_test','data','epochs', 'batch', 'dense', 'loss', 'val_loss', 'time']],'\n')
 
 if(config.plot_confusion):
     conf_mat = confusion_matrix(y_test_pairs, y_pred)

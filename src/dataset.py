@@ -192,7 +192,7 @@ def generate_triplets_unique(X, y, n):
     return [np.array(anchors), np.array(positives), np.array(negatives)], labels
 
 def print_audio_lengths(d):
-    print(f'\nLength: {len(d)}, Mean: {np.mean(d)}, Median: {np.median(d)}, Max: {np.max(d)}, Min: {np.min(d)}')
+    print(f'\nCount: {len(d)}, Sum: {np.sum(d)}, Mean: {np.mean(d)}, Median: {np.median(d)}, Max: {np.max(d)}, Min: {np.min(d)}')
     print(f'unde 1s: {percent(len(np.where(d<=1)[0]), len(d))}, 1s - 2s: {percent(len(np.where((d >= 1) & (d <= 2))[0]), len(d))}')
     print(f'2s - 3s: {percent(len(np.where((d >= 2) & (d <= 3))[0]), len(d))}, 3s - 4s: {percent(len(np.where((d >= 3) & (d <= 4))[0]), len(d))}')
     print(f'4s - 5s: {percent(len(np.where((d >= 4) & (d <= 5))[0]), len(d))}, over 5s: {percent(len(np.where(d>=5)[0]), len(d))}\n')
@@ -205,19 +205,22 @@ X, y, d = create_data(speakers_dict, config.n_speakers, config.n_recordings, con
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=args_conf('test_size'), random_state=42)
 X_trip, y_trip = generate_triplets_unique(X_train, y_train, args_conf('n_triplets'))
 
-print(f'\nData shape: {X.shape}, Train Test split: {y_train.shape[0]} / {y_test.shape[0]}, Triplets shape: {X_trip[0].shape}\n')
-#print_audio_lengths(d)
+""" print(f'\nData shape: {X.shape}, Train Test split: {y_train.shape[0]} / {y_test.shape[0]}, Triplets shape: {X_trip[0].shape}\n')
+print_audio_lengths(d) """
 
 np.savez('data/data.npz', X=X, y=y, X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
 np.savez('data/triplets.npz', X_trip=X_trip, y_trip=y_trip)
 
 np.save('data/settings.npy', {
-    'n_triplets':args_conf('n_triplets'),
+    'n_speakers':args_conf('n_speakers'),
+    'train_test':f'{y_train.shape[0]}/{y_test.shape[0]}',
     'mode':args_conf('mode'),
     'mic':args_conf('mic'),
     'sr':args_conf('sr'),
     'length':args_conf('length'),
     'min_duration':args_conf('min_duration'),
+    'max_count':args_conf('max_count'),
+    'overlap':args_conf('overlap'),
     'n_mfcc':args_conf('n_mfcc'),
     'n_mels':args_conf('n_mels'),
     'n_fft':args_conf('n_fft'),
