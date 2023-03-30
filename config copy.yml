@@ -1,0 +1,68 @@
+main:
+  result_name: yaml-test
+  dataset: True
+  dataset_search: True
+
+  siamese: True
+  siamese_search: False
+
+  classifier: True
+  classifier_search: False
+
+dataset:
+  directory: ./VCTK-Corpus/wav48
+  mode: mfcc # mfcc / spectogram
+  mic: 2 # 1 = lower quality mic, 2 = high quality
+  test_size: 0.20
+  n_triplets: 5000
+  n_speakers: 5
+  n_recordings: 100
+  sr: 22050
+  length: 3 
+  overlap: 0.25
+  max_count: 5
+  min_duration: 2.7
+  n_mfcc: 40 
+  n_mels: 128
+  n_fft: 512
+  fmin: 0
+  fmax: 11025
+  power: 2
+  top_db: 30
+
+#best 512, 0.01
+siamese:
+  plot_history: False
+  plot_scatter: False
+  create_embedings: True
+  
+  result_name: yaml-test
+  param: None
+
+  version: 0
+  filters: 64
+  strides: (2,2)
+  dense: 512
+
+  verbose: 1
+  validation_split: 0.15 
+  batch_size: 128
+  epochs: 2
+  learning_rate: 0.01
+  margin: 1 #triplet loss
+  patience: 5 #early stopping
+
+classifier:
+  plot_summary: False
+  plot_history: False
+  plot_confusion: False
+
+  result_name: yaml-test
+
+  verbose: 2 
+  validation_split: 0.20 
+  batch_size: 256
+  epochs: 2
+  learning_rate: 0.001
+  patience: 5 #early stopping
+  

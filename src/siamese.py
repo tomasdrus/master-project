@@ -31,6 +31,7 @@ parser.add_argument('--lr', dest='learning_rate', type=float)
 parser.add_argument('--epochs', dest='epochs', type=int)
 parser.add_argument('--patience', dest='patience', type=int)
 parser.add_argument('--margin', dest='margin', type=int)
+parser.add_argument('--param', dest='param')
 args = parser.parse_args()
 
 def args_conf(name):
@@ -91,9 +92,10 @@ model.save_weights('./weights/model.hdf5')
 
 # save results
 if(not os.path.exists(f"results/{config.result_name}.csv")):
-    column_names = ["version",'train_test', "data",'min_duration', "length",'max_count',
+    column_names = ["version","param",'train_test', "data",'min_duration', "length",'max_count',
                     'overlap','n_mfcc','n_mels','n_fft','fmin','fmax','power', "epochs",
-                    "batch",'dense', "lr", "time", "loss", "val_loss", "LOSS", "ACC", "FAR", "FRR", "EER"]
+                    "batch",'dense', "lr", "time", "loss", "val_loss",
+                    "LOSS", "ACC", "FAR", "FRR", "EER"]
     df = pd.DataFrame(columns=column_names)
 else:
     df = pd.read_csv(f'results/{config.result_name}.csv', index_col=0)
@@ -102,6 +104,7 @@ settings = np.load('./data/settings.npy', allow_pickle=True).item()
 
 df.loc[df.shape[0]] = {
     'version': args_conf('version'),
+    'param': args_conf('param'),
     'train_test': settings['train_test'],
     'data': X_trip[0].shape,
     'min_duration': settings['min_duration'],
@@ -121,7 +124,7 @@ df.loc[df.shape[0]] = {
     'lr': args_conf('learning_rate'),
     'loss':round(history.history['loss'][-1], 5),
     'val_loss':round(history.history['val_loss'][-1], 5),
-    'time':round(elapsed_time, 2),
+    'time': round(elapsed_time/60, 1),
     }
 
 #print('\n',df,'\n')
