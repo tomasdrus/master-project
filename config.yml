@@ -1,56 +1,60 @@
 main:
-  result_name: yaml-test
-  dataset: true
-  dataset_search: true
+  result_name: all-test-2
+  dataset: false
+  dataset_search: false
   siamese: true
-  siamese_search: false
+  siamese_search: true
   classifier: true
-  classifier_search: false
+  classifier_search: true
 dataset:
   directory: ./VCTK-Corpus/wav48
   mode: mfcc
   mic: 2
   test_size: 0.2
-  n_triplets: 5000
-  n_speakers: 5
-  n_recordings: 100
+  n_triplets: 25000
+  n_speakers: 50
+  n_recordings: 1000
   sr: 22050
   length: 3
-  overlap: 0.25
-  max_count: 5
-  min_duration: 2.7
+  overlap: 0.2
+  max_count: 10
+  min_duration: 2.8
   n_mfcc: 40
   n_mels: 128
   n_fft: 512
   fmin: 200
-  fmax: 6000
+  fmax: 9000
   power: 2
   top_db: 30
 siamese:
   plot_history: false
   plot_scatter: false
   create_embedings: true
-  result_name: yaml-test
-  param: None
-  version: 0
-  filters: 64
-  strides: (2,2)
-  dense: 512
+  result_name: all-test-2
+  v_cnn: 3
+  embeding: 1024
+  kernel: '[3,1]'
+  strides: '[1,1]'
+  optimizer: Adam
+  activation: ReLU
+  padding: valid
+  lr: 0.01
+  margin: 1.0
   verbose: 1
   validation_split: 0.15
-  batch_size: 128
-  epochs: 2
-  learning_rate: 0.01
-  margin: 1
-  patience: 5
+  batch_size: 256
+  epochs: 15
+  patience: 3
 classifier:
   plot_summary: false
   plot_history: false
   plot_confusion: false
-  result_name: yaml-test
-  verbose: 2
+  n_pairs: 50000
+  vectors_join: concatenate
+  result_name: all-test-2
+  verbose: 1
   validation_split: 0.2
   batch_size: 256
-  epochs: 2
-  learning_rate: 0.001
+  epochs: 10
+  learning_rate: 0.01
   patience: 5
