@@ -64,8 +64,10 @@ if(config.dataset):
         os.system('python3 src/dataset.py')
 
 # siamese
-""" siamese = {
+siamese = {
+    'flattening': ['flatten', 'global'],
     'v_cnn': [1, 2, 3],
+    'n_kernels': [8, 16, 32, 64, 128],
     'activation': ['ReLU', 'LeakyReLU', 'PReLU'],
     'padding': ['same', 'valid'],
     'embeding': [128, 256, 512, 1024],
@@ -76,7 +78,7 @@ if(config.dataset):
 optimizer = ['SGD', 'Adam', 'AdamW', 'Nadam']
 lr = [0.01, 0.05, 0.001, 0.005, 0.0001, 0.0005]
 
-margin = [0.1, 0.5, 1.0, 1.5, 2.0] """
+margin = [0.1, 0.5, 1.0, 1.5, 2.0]
 
 siamese = {
     'v_cnn': [1, 2, 3],
